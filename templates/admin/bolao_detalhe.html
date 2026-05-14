@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ bolao.nome }} — Admin{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="/admin" class="back-link">← Admin</a>
+  <h1 class="page-title">{{ bolao.nome }}</h1>
+  <p class="page-sub">R$ {{ "%.0f"|format(total_arrecadado) }} arrecadados</p>
+</div>
+
+<div class="admin-tabs">
+  <button class="admin-tab admin-tab--active" onclick="showTab('fases', this)">Fases</button>
+  <button class="admin-tab" onclick="showTab('cotas', this)">Cotas ({{ cotas|length }})</button>
+  <button class="admin-tab" onclick="showTab('convite', this)">Convite</button>
+  <a href="/admin/bolao/{{ bolao.id }}/jogos" class="admin-tab">Jogos/Resultados</a>
+  <a href="/admin/bolao/{{ bolao.id }}/ranking-admin" class="admin-tab">Ranking</a>
+</div>
+
+<!-- TAB: FASES -->
+<div id="tab-fases" class="tab-content">
+  <div class="admin-list">
+    {% for fase in fases %}
+    <div class="admin-list-item" style="flex-direction:column;align-items:flex-start;gap:.5rem">
+      <div style="display:flex;align-items:center;gap:.75rem;width:100%">
+        <strong>{{ fase.nome }}</strong>
+        <span class="badge badge--{{
+          'green' if fase.status == 'aberta' else
+          'orange' if fase.status == 'fechada' else 'gray'
+        }}">{{ fase.status }}</span>
+        <span class="text-muted" style="margin-left:auto">×{{ fase.multiplicador }}</span>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn--sm btn--primary"
+          onclick="setFaseStatus({{ fase.id }}, 'aberta')">Abrir</button>
+        <button class="btn btn--sm btn--ghost"
+          onclick="setFaseStatus({{ fase.id }}, 'fechada')">Fechar</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- TAB: COTAS -->
+<div id="tab-cotas" class="tab-content" style="display:none">
+  {% if cotas %}
+  <div class="admin-list">
+    {% for cota in cotas %}
+    <div class="admin-list-item">
+      <div>
+        <strong>#{{ cota.numero }} {{ cota.participante }}</strong>
+        <br><small class="text-muted">{{ cota.email }}</small>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        {% if cota.pago %}
+          <span class="badge badge--green">Pago</span>
+        {% else %}
+          <button class="btn btn--sm btn--primary"
+            onclick="confirmarPagamento({{ cota.id }}, this)">
+            Confirmar pagto
+          </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">Nenhuma cota ainda.</div>
+  {% endif %}
+</div>
+
+<!-- TAB: CONVITE -->
+<div id="tab-convite" class="tab-content" style="display:none">
+  <div class="admin-form" style="max-width:480px">
+    <div class="field">
+      <label class="field-label">E-mail do participante (opcional)</label>
+      <input class="field-input" type="email" id="convite-email" placeholder="participante@email.com">
+    </div>
+    <div class="field">
+      <label class="field-label">Validade (dias)</label>
+      <input class="field-input" type="number" id="convite-dias" value="7" min="1" max="30">
+    </div>
+    <button class="btn btn--primary" onclick="gerarConvite({{ bolao.id }})">
+      Gerar link de convite
+    </button>
+    <div id="convite-resultado" style="margin-top:1rem;display:none">
+      <label class="field-label">Link gerado:</label>
+      <div class="convite-link-box">
+        <span id="convite-link"></span>
+        <button class="btn btn--sm btn--ghost" onclick="copiarConvite()">📋 Copiar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.admin-tab').forEach(el => el.classList.remove('admin-tab--active'));
+  document.getElementById(`tab-${name}`).style.display = '';
+  btn.classList.add('admin-tab--active');
+}
+
+async function setFaseStatus(faseId, status) {
+  const resp = await fetch(`/admin/fase/${faseId}/status`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({status}),
+  });
+  if (resp.ok) { showToast('Status atualizado!', 'success'); setTimeout(() => location.reload(), 800); }
+  else showToast('Erro ao atualizar', 'error');
+}
+
+async function confirmarPagamento(cotaId, btn) {
+  const resp = await fetch(`/admin/cota/${cotaId}/confirmar-pagamento`, {method:'POST'});
+  if (resp.ok) {
+    btn.parentElement.innerHTML = '<span class="badge badge--green">Pago ✓</span>';
+    showToast('Pagamento confirmado!', 'success');
+  }
+}
+
+async function gerarConvite(bolaoId) {
+  const email = document.getElementById('convite-email').value;
+  const dias = document.getElementById('convite-dias').value;
+  const fd = new FormData();
+  fd.append('email_destino', email);
+  fd.append('dias_validade', dias);
+  const resp = await fetch(`/admin/bolao/${bolaoId}/convite`, {method:'POST', body: fd});
+  const data = await resp.json();
+  document.getElementById('convite-link').textContent = data.link;
+  document.getElementById('convite-resultado').style.display = '';
+}
+
+function copiarConvite() {
+  const link = document.getElementById('convite-link').textContent;
+  navigator.clipboard.writeText(link).then(() => showToast('Link copiado!', 'success'));
+}
+</script>
+{% endblock %}

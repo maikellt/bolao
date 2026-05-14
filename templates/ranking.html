@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Ranking — {{ bolao.nome }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="/dashboard" class="back-link">← Voltar</a>
+  <h1 class="page-title">🏆 Ranking</h1>
+  <p class="page-sub">{{ bolao.nome }}</p>
+</div>
+
+<div class="ranking-list">
+  {% for item in ranking %}
+  {% set is_mine = item.cota_id in (cotas_ids or []) %}
+  <div class="ranking-row {% if loop.index <= 3 %}ranking-row--top{{ loop.index }}{% endif %}
+    {% if is_mine %}ranking-row--mine{% endif %}">
+    <div class="rank-pos">
+      {% if loop.index == 1 %}🥇
+      {% elif loop.index == 2 %}🥈
+      {% elif loop.index == 3 %}🥉
+      {% else %}{{ loop.index }}{% endif %}
+    </div>
+    <div class="rank-info">
+      <span class="rank-name">{{ item.participante }}</span>
+      <span class="rank-cota">Cota #{{ item.numero_cota }}</span>
+    </div>
+    <div class="rank-stats">
+      <span class="rank-pts">{{ "%.1f"|format(item.total) }} <small>pts</small></span>
+      <div class="rank-detail">
+        <span title="Placares exatos">🎯 {{ item.placares_exatos }}</span>
+        <span title="Classificados">✅ {{ item.classificados }}</span>
+      </div>
+    </div>
+    <a href="/cota/{{ item.cota_id }}/historico" class="btn btn--ghost btn--xs">📊</a>
+  </div>
+  {% else %}
+  <div class="empty-state">Nenhuma cota ativa ainda.</div>
+  {% endfor %}
+</div>
+
+<!-- Legenda de pontuação -->
+<div class="pontuacao-legenda">
+  <h3 class="section-title" style="margin-top:2rem">📐 Como são os pontos?</h3>
+  <div class="legenda-grid">
+    <div class="legenda-item">
+      <span class="legenda-pts">5</span>
+      <span>Placar exato (grupos)</span>
+    </div>
+    <div class="legenda-item">
+      <span class="legenda-pts">3</span>
+      <span>Resultado certo (grupos)</span>
+    </div>
+    <div class="legenda-item">
+      <span class="legenda-pts">6×</span>
+      <span>Placar exato (mata-mata)</span>
+    </div>
+    <div class="legenda-item">
+      <span class="legenda-pts">4×</span>
+      <span>Classificado certo</span>
+    </div>
+    <div class="legenda-item">
+      <span class="legenda-pts">2×</span>
+      <span>Vencedor no regulamento</span>
+    </div>
+    <div class="legenda-item">
+      <span class="legenda-pts">10</span>
+      <span>Acertar campeão 🏆</span>
+    </div>
+  </div>
+  <p class="legenda-note">Multiplicadores: Fase 32/Oitavas ×1.5 · Quartas ×2 · Semi ×3 · Final ×4</p>
+</div>
+
+{% endblock %}

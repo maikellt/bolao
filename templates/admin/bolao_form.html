@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Novo Bolão — Admin{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="/admin" class="back-link">← Voltar</a>
+  <h1 class="page-title">Novo Bolão</h1>
+</div>
+
+<form method="POST" action="/admin/bolao/novo" class="admin-form">
+  <div class="field">
+    <label class="field-label">Nome do bolão *</label>
+    <input class="field-input" type="text" name="nome" required placeholder="Bolão Copa 2026 — Turma X">
+  </div>
+  <div class="field">
+    <label class="field-label">Descrição</label>
+    <textarea class="field-input" name="descricao" rows="2" placeholder="Descrição opcional"></textarea>
+  </div>
+  <div class="field">
+    <label class="field-label">Valor da cota (R$)</label>
+    <input class="field-input" type="number" name="valor_cota" value="20" min="1" step="0.01">
+  </div>
+
+  <h3 class="section-title" style="margin-top:1.5rem">Divisão do prêmio (%)</h3>
+  <div class="divisao-grid">
+    {% for i, label in [(1,'1º lugar'),(2,'2º lugar'),(3,'3º lugar'),(4,'4º lugar'),(5,'5º lugar')] %}
+    <div class="field">
+      <label class="field-label">{{ label }}</label>
+      <input class="field-input" type="number" name="divisao_{{ i }}"
+        value="{{ [40,25,15,10,10][loop.index0] }}" min="0" max="100">
+    </div>
+    {% endfor %}
+  </div>
+
+  <button type="submit" class="btn btn--primary btn--full" style="margin-top:2rem">
+    Criar bolão + fases padrão
+  </button>
+</form>
+
+{% endblock %}

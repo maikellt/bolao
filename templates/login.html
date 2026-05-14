@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Bolão Copa 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-body">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">⚽</div>
+        <h1 class="auth-title">BOLÃO</h1>
+        <p class="auth-subtitle">Copa do Mundo 2026</p>
+      </div>
+
+      {% if erro %}
+      <div class="alert alert--error">{{ erro }}</div>
+      {% endif %}
+
+      <form method="POST" action="/login" class="auth-form">
+        <div class="field">
+          <label class="field-label">E-mail</label>
+          <input class="field-input" type="email" name="email" required placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label class="field-label">Senha</label>
+          <input class="field-input" type="password" name="senha" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn--primary btn--full">Entrar</button>
+      </form>
+
+      <p class="auth-footer">Acesso apenas por convite do organizador.</p>
+    </div>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

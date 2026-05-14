@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  bolao:
+    build: .
+    container_name: bolao
+    restart: unless-stopped
+    ports:
+      - "8087:8000"
+    env_file:
+      - .env
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      LOCAL_DB_PATH: "/tmp/bolao/local.db"
+    networks:
+      - bolao-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  bolao-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.26.0.0/16

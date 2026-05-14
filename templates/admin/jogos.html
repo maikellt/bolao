@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Jogos e Resultados — {{ bolao.nome }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="/admin/bolao/{{ bolao.id }}" class="back-link">← Bolão</a>
+  <h1 class="page-title">Jogos e Resultados</h1>
+  <p class="page-sub">{{ bolao.nome }}</p>
+</div>
+
+<!-- Adicionar jogo -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 class="section-title">+ Adicionar jogo</h3>
+  <div class="jogo-form-grid">
+    <div class="field">
+      <label class="field-label">Fase</label>
+      <select class="field-input" id="novo-fase">
+        {% for fase in fases %}
+        <option value="{{ fase.id }}">{{ fase.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Time da casa</label>
+      <input class="field-input" type="text" id="novo-casa" placeholder="Brasil">
+    </div>
+    <div class="field">
+      <label class="field-label">Time de fora</label>
+      <input class="field-input" type="text" id="novo-fora" placeholder="Argentina">
+    </div>
+    <div class="field">
+      <label class="field-label">Data/hora (UTC)</label>
+      <input class="field-input" type="datetime-local" id="novo-data">
+    </div>
+  </div>
+  <button class="btn btn--primary btn--sm" onclick="adicionarJogo({{ bolao.id }})">
+    Adicionar jogo
+  </button>
+</div>
+
+<!-- Lista de jogos -->
+<div class="admin-list">
+  {% for jogo in jogos %}
+  {% set resultado = resultados.get(jogo.id) %}
+  <div class="admin-list-item" style="flex-direction:column;gap:.75rem">
+    <div style="display:flex;align-items:center;gap:.75rem;width:100%;flex-wrap:wrap">
+      <span class="badge badge--gray">{{ jogo.fase_nome }}</span>
+      <strong>{{ jogo.time_casa }} × {{ jogo.time_fora }}</strong>
+      <span class="text-muted" style="margin-left:auto">{{ jogo.data_hora[:16] }} UTC</span>
+      {% if jogo.status == 'finalizado' %}
+        <span class="badge badge--green">Finalizado</span>
+      {% endif %}
+    </div>
+
+    {% if resultado %}
+    <div class="resultado-lancar">
+      <span class="badge badge--green">Resultado: {{ resultado.gols_casa }}–{{ resultado.gols_fora }}
+        {% if resultado.classificado %} · {{ resultado.classificado }}{% endif %}
+      </span>
+      <button class="btn btn--xs btn--ghost"
+        onclick="reprocessar({{ jogo.id }})">🔄 Reprocessar</button>
+    </div>
+    {% else %}
+    <div class="resultado-form">
+      <input type="number" class="placar-input" id="r-casa-{{ jogo.id }}"
+        placeholder="0" min="0" max="20" style="width:60px">
+      <span>×</span>
+      <input type="number" class="placar-input" id="r-fora-{{ jogo.id }}"
+        placeholder="0" min="0" max="20" style="width:60px">
+
+      {% if jogo.fase_slug != 'grupos' or true %}
+      <select class="field-input" id="r-class-{{ jogo.id }}" style="max-width:160px">
+        <option value="">Classificado</option>
+        <option value="{{ jogo.time_casa }}">{{ jogo.time_casa }}</option>
+        <option value="{{ jogo.time_fora }}">{{ jogo.time_fora }}</option>
+      </select>
+      {% endif %}
+
+      <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;color:var(--text-muted)">
+        <input type="checkbox" id="r-prorr-{{ jogo.id }}"> Prorrogação
+      </label>
+      <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;color:var(--text-muted)">
+        <input type="checkbox" id="r-pen-{{ jogo.id }}"> Pênaltis
+      </label>
+
+      <button class="btn btn--primary btn--sm"
+        onclick="lancarResultado({{ jogo.id }})">
+        Lançar resultado
+      </button>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const BOLAO_ID = {{ bolao.id }};
+
+async function adicionarJogo(bolaoId) {
+  const fase_id = document.getElementById('novo-fase').value;
+  const time_casa = document.getElementById('novo-casa').value.trim();
+  const time_fora = document.getElementById('novo-fora').value.trim();
+  const data_hora = document.getElementById('novo-data').value;
+  if (!time_casa || !time_fora || !data_hora) { showToast('Preencha todos os campos', 'error'); return; }
+  const resp = await fetch('/admin/jogo/novo', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({bolao_id: bolaoId, fase_id: parseInt(fase_id), time_casa, time_fora, data_hora: data_hora + ':00'}),
+  });
+  if (resp.ok) { showToast('Jogo adicionado!', 'success'); setTimeout(() => location.reload(), 600); }
+  else showToast('Erro ao adicionar', 'error');
+}
+
+async function lancarResultado(jogoId) {
+  const gols_casa = parseInt(document.getElementById(`r-casa-${jogoId}`).value) || 0;
+  const gols_fora = parseInt(document.getElementById(`r-fora-${jogoId}`).value) || 0;
+  const classEl = document.getElementById(`r-class-${jogoId}`);
+  const classificado = classEl ? classEl.value : null;
+  const foi_prorrogacao = document.getElementById(`r-prorr-${jogoId}`)?.checked ? 1 : 0;
+  const foi_penaltis = document.getElementById(`r-pen-${jogoId}`)?.checked ? 1 : 0;
+
+  const resp = await fetch('/admin/resultado/lancar', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({jogo_id: jogoId, gols_casa, gols_fora, classificado, foi_prorrogacao, foi_penaltis}),
+  });
+  if (resp.ok) { showToast('Resultado lançado e pontuação calculada!', 'success'); setTimeout(() => location.reload(), 800); }
+  else { const d = await resp.json(); showToast(d.detail || 'Erro', 'error'); }
+}
+
+async function reprocessar(jogoId) {
+  const resp = await fetch(`/admin/resultado/${jogoId}/reprocessar`, {method:'POST'});
+  if (resp.ok) showToast('Pontuação reprocessada!', 'success');
+}
+</script>
+{% endblock %}

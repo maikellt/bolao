@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Palpites — {{ fase.nome }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="/dashboard" class="back-link">← Voltar</a>
+  <h1 class="page-title">{{ fase.nome }}</h1>
+  <p class="page-sub">{{ bolao.nome }}</p>
+</div>
+
+<!-- Seletor de cota -->
+{% if cotas|length > 1 %}
+<div class="cota-selector">
+  <label class="field-label">Palpitando pela cota:</label>
+  <div class="cota-tabs">
+    {% for cota in cotas %}
+    <button class="cota-tab {% if loop.first %}cota-tab--active{% endif %}"
+      data-cota="{{ cota.id }}" onclick="selectCota({{ cota.id }}, this)">
+      #{{ cota.numero }}
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Jogos por dia -->
+{% set ns = namespace(dia_atual='') %}
+{% for jogo in jogos %}
+  {% set dia = jogo.data_hora[:10] %}
+  {% if dia != ns.dia_atual %}
+    {% set ns.dia_atual = dia %}
+    {% set bloqueio = bloqueios_dia[dia] %}
+    <div class="day-section">
+      <div class="day-header">
+        <span class="day-label">{{ dia }}</span>
+        {% if bloqueio %}
+        <span class="deadline-badge" id="deadline-{{ dia }}"
+          data-deadline="{{ bloqueio }}">
+          ⏰ Prazo: <span class="countdown"></span>
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% set resultado = resultados.get(jogo.id) %}
+  {% set bloqueado_dia = bloqueios_dia[jogo.data_hora[:10]] %}
+
+  <div class="jogo-card" id="jogo-{{ jogo.id }}">
+    {% if resultado %}
+    <div class="resultado-oficial">
+      <span class="resultado-badge">Resultado oficial</span>
+      <span class="resultado-placar">{{ resultado.gols_casa }} x {{ resultado.gols_fora }}</span>
+      {% if resultado.classificado %}
+      <span class="resultado-classificado">Classificado: {{ resultado.classificado }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="jogo-times">
+      <div class="jogo-time jogo-time--casa">
+        <span class="time-name">{{ jogo.time_casa }}</span>
+      </div>
+      <span class="jogo-vs">VS</span>
+      <div class="jogo-time jogo-time--fora">
+        <span class="time-name">{{ jogo.time_fora }}</span>
+      </div>
+    </div>
+
+    <div class="jogo-horario">{{ jogo.data_hora[11:16] }} UTC</div>
+
+    <!-- Palpites por cota -->
+    {% for cota in cotas %}
+      {% set key = cota.id|string + '_' + jogo.id|string %}
+      {% set palpite = palpites.get(key) %}
+      <div class="palpite-row cota-palpite" data-cota="{{ cota.id }}"
+        {% if cotas|length > 1 and not loop.first %}style="display:none"{% endif %}>
+
+        <div class="palpite-inputs">
+          <input type="number" min="0" max="30"
+            class="placar-input"
+            id="casa-{{ cota.id }}-{{ jogo.id }}"
+            value="{{ palpite.gols_casa if palpite else '' }}"
+            placeholder="0"
+            {% if not bloqueado_dia or resultado %}disabled{% else %}disabled{% endif %}
+            data-bloqueio="{{ bloqueado_dia }}">
+
+          <span class="placar-sep">–</span>
+
+          <input type="number" min="0" max="30"
+            class="placar-input"
+            id="fora-{{ cota.id }}-{{ jogo.id }}"
+            value="{{ palpite.gols_fora if palpite else '' }}"
+            placeholder="0"
+            data-bloqueio="{{ bloqueado_dia }}">
+
+          {% if fase.slug != 'grupos' %}
+          <select class="classificado-select"
+            id="class-{{ cota.id }}-{{ jogo.id }}"
+            data-bloqueio="{{ bloqueado_dia }}">
+            <option value="">Classificado?</option>
+            <option value="{{ jogo.time_casa }}"
+              {% if palpite and palpite.classificado == jogo.time_casa %}selected{% endif %}>
+              {{ jogo.time_casa }}
+            </option>
+            <option value="{{ jogo.time_fora }}"
+              {% if palpite and palpite.classificado == jogo.time_fora %}selected{% endif %}>
+              {{ jogo.time_fora }}
+            </option>
+          </select>
+          {% endif %}
+
+          <button class="btn-salvar-palpite btn btn--sm btn--primary"
+            data-cota="{{ cota.id }}"
+            data-jogo="{{ jogo.id }}"
+            data-fase="{{ fase.slug }}"
+            onclick="salvarPalpite({{ cota.id }}, {{ jogo.id }}, '{{ fase.slug }}')"
+            {% if bloqueado_dia %}disabled{% endif %}>
+            {% if palpite %}✓{% else %}Salvar{% endif %}
+          </button>
+        </div>
+
+        {% if palpite %}
+        <div class="palpite-status" id="status-{{ cota.id }}-{{ jogo.id }}">
+          <span class="badge badge--saved">Salvo {{ palpite.updated_at[:10] }}</span>
+          {% if resultado %}
+            {% set pts_key = cota.id|string + '_' + jogo.id|string %}
+            <span class="badge badge--points">pontos calculados</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+
+<!-- Simulador de pontuação -->
+<div class="simulador-section">
+  <h3 class="section-title">🧮 Simulador de pontuação</h3>
+  <div class="simulador-card">
+    <div class="simulador-inputs">
+      <input type="number" id="sim-casa" class="placar-input" placeholder="0" min="0" value="1">
+      <span class="placar-sep">–</span>
+      <input type="number" id="sim-fora" class="placar-input" placeholder="0" min="0" value="0">
+    </div>
+    <button class="btn btn--ghost btn--sm" onclick="simularPontuacao('{{ fase.slug }}')">
+      Calcular pontos
+    </button>
+    <div id="sim-resultado" class="simulador-resultado"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const FASE_SLUG = "{{ fase.slug }}";
+const COTAS = {{ cotas | tojson }};
+let cotaAtiva = COTAS.length > 0 ? COTAS[0].id : null;
+const BLOQUEIOS = {{ bloqueios_dia | tojson }};
+
+// Habilita/desabilita inputs baseado no bloqueio
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  document.querySelectorAll('[data-bloqueio]').forEach(el => {
+    const bl = el.getAttribute('data-bloqueio');
+    if (!bl) return;
+    const bloqueio = new Date(bl);
+    if (now >= bloqueio) {
+      if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.disabled = true;
+      if (el.classList.contains('btn-salvar-palpite')) el.disabled = true;
+    } else {
+      if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.disabled = false;
+    }
+  });
+  initCountdowns();
+});
+
+function selectCota(cotaId, btn) {
+  cotaAtiva = cotaId;
+  document.querySelectorAll('.cota-tab').forEach(b => b.classList.remove('cota-tab--active'));
+  btn.classList.add('cota-tab--active');
+  document.querySelectorAll('.cota-palpite').forEach(el => {
+    el.style.display = el.dataset.cota == cotaId ? '' : 'none';
+  });
+}
+
+async function salvarPalpite(cotaId, jogoId, faseSlug) {
+  const casa = parseInt(document.getElementById(`casa-${cotaId}-${jogoId}`).value) || 0;
+  const fora = parseInt(document.getElementById(`fora-${cotaId}-${jogoId}`).value) || 0;
+  let classificado = null;
+  const selectEl = document.getElementById(`class-${cotaId}-${jogoId}`);
+  if (selectEl) classificado = selectEl.value || null;
+
+  if (faseSlug !== 'grupos' && !classificado) {
+    showToast('Selecione o time classificado!', 'error');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/palpites/salvar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cota_id: cotaId, jogo_id: jogoId, gols_casa: casa, gols_fora: fora, classificado}),
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      const btn = document.querySelector(`button[data-cota="${cotaId}"][data-jogo="${jogoId}"]`);
+      if (btn) { btn.textContent = '✓'; btn.classList.add('btn--saved'); }
+      showToast('Palpite salvo!', 'success');
+    } else {
+      showToast(data.detail || 'Erro ao salvar', 'error');
+    }
+  } catch(e) {
+    showToast('Erro de conexão', 'error');
+  }
+}
+
+async function simularPontuacao(faseSlug) {
+  const casa = document.getElementById('sim-casa').value || 0;
+  const fora = document.getElementById('sim-fora').value || 0;
+  const resp = await fetch(`/api/simulador?gols_casa=${casa}&gols_fora=${fora}&fase_slug=${faseSlug}`);
+  const data = await resp.json();
+  document.getElementById('sim-resultado').innerHTML =
+    `<strong>${data.pontos_possiveis} pts</strong> (${data.tipo}) — multiplicador ${data.multiplicador}x`;
+}
+
+function initCountdowns() {
+  Object.entries(BLOQUEIOS).forEach(([dia, bl]) => {
+    if (!bl) return;
+    const el = document.getElementById(`deadline-${dia}`);
+    if (!el) return;
+    const countdownEl = el.querySelector('.countdown');
+    const deadline = new Date(bl);
+    function update() {
+      const diff = deadline - new Date();
+      if (diff <= 0) {
+        countdownEl.textContent = 'Encerrado';
+        el.classList.add('deadline-badge--closed');
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      countdownEl.textContent = `${h}h ${m}min`;
+    }
+    update();
+    setInterval(update, 30000);
+  });
+}
+</script>
+{% endblock %}

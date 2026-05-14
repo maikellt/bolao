@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Admin — Bolão Copa 2026{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">⚙️ Painel Admin</h1>
+  <p class="page-sub">Olá, {{ user.nome }}</p>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-value">{{ total_users }}</span>
+    <span class="stat-label">Participantes</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">{{ total_cotas }}</span>
+    <span class="stat-label">Cotas ativas</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">R$ {{ "%.0f"|format(total_cotas * 20) }}</span>
+    <span class="stat-label">Arrecadado</span>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">🎯 Bolões</h2>
+    <a href="/admin/bolao/novo" class="btn btn--primary btn--sm">+ Novo bolão</a>
+  </div>
+
+  {% if boloes %}
+  <div class="admin-list">
+    {% for bolao in boloes %}
+    <a href="/admin/bolao/{{ bolao.id }}" class="admin-list-item">
+      <div>
+        <strong>{{ bolao.nome }}</strong>
+        <span class="badge badge--{{ 'green' if bolao.status == 'ativo' else 'gray' }}">
+          {{ bolao.status }}
+        </span>
+      </div>
+      <span class="text-muted">R$ {{ bolao.valor_cota }}/cota →</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">Nenhum bolão criado ainda.</div>
+  {% endif %}
+</section>
+
+{% endblock %}

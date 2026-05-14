@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Meu Bolão — Copa 2026{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">Olá, {{ user.nome.split()[0] }} 👋</h1>
+  <p class="page-sub">Suas cotas e palpites</p>
+</div>
+
+{% if fases_abertas %}
+<section class="section">
+  <h2 class="section-title">⚡ Palpites abertos agora</h2>
+  <div class="phases-open">
+    {% for fase in fases_abertas %}
+    <a href="/palpites/bolao/{{ fase.bolao_id }}/fase/{{ fase.id }}" class="phase-card phase-card--open">
+      <span class="phase-card__name">{{ fase.nome }}</span>
+      <span class="phase-card__cta">Palpitar →</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <h2 class="section-title">🎟️ Minhas cotas</h2>
+  {% if cotas %}
+  <div class="cotas-list">
+    {% for cota in cotas %}
+    <div class="cota-card {% if not cota.pago %}cota-card--inativa{% endif %}">
+      <div class="cota-card__top">
+        <span class="cota-badge">Cota #{{ cota.numero }}</span>
+        {% if cota.pago %}
+          <span class="badge badge--green">Ativa</span>
+        {% else %}
+          <span class="badge badge--orange">Aguardando pagamento</span>
+        {% endif %}
+      </div>
+      <p class="cota-bolao">{{ cota.bolao_nome }}</p>
+      <div class="cota-pontos">
+        <span class="pontos-value">{{ "%.0f"|format(cota.total_pontos) }}</span>
+        <span class="pontos-label">pts</span>
+      </div>
+      <div class="cota-actions">
+        <a href="/bolao/{{ cota.bolao_id }}/ranking" class="btn btn--sm btn--ghost">Ver ranking</a>
+        <a href="/cota/{{ cota.id }}/historico" class="btn btn--sm btn--ghost">Histórico</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>Você não possui cotas ativas.</p>
+    <p>Aguarde o convite do organizador.</p>
+  </div>
+  {% endif %}
+</section>
+
+{% endblock %}

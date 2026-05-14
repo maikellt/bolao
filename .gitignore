@@ -1,0 +1,40 @@
+# Ambiente virtual Python
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Dependências instaladas
+*.egg-info/
+dist/
+build/
+
+# Variáveis de ambiente (NUNCA versionar)
+.env
+
+# Banco de dados local (efêmero)
+*.db
+*.db-shm
+*.db-wal
+/tmp/
+
+# Logs
+*.log
+logs/
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker
+.dockerignore
+
+# Render
+render.yaml.local

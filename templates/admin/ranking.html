@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Ranking Admin — {{ bolao.nome }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="/admin/bolao/{{ bolao.id }}" class="back-link">← Bolão</a>
+  <h1 class="page-title">🏆 Ranking + Premiação</h1>
+  <p class="page-sub">{{ bolao.nome }}</p>
+</div>
+
+{% if premiacao %}
+<section class="section">
+  <h2 class="section-title">💰 Distribuição de prêmios</h2>
+  <div class="admin-list">
+    {% for item in premiacao %}
+    <div class="admin-list-item">
+      <div>
+        <span class="rank-pos-badge">{{ item.posicao }}º</span>
+        <strong>{{ item.participante }}</strong> — Cota #{{ item.numero_cota }}
+      </div>
+      <div style="text-align:right">
+        <span class="premio-valor">R$ {{ "%.2f"|format(item.valor_premio) }}</span>
+        <br><small class="text-muted">{{ item.percentual }}% · {{ "%.1f"|format(item.total) }} pts</small>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <h2 class="section-title">Ranking completo</h2>
+  <div class="ranking-list">
+    {% for item in ranking %}
+    <div class="ranking-row {% if loop.index <= 3 %}ranking-row--top{{ loop.index }}{% endif %}">
+      <div class="rank-pos">{{ item.posicao }}</div>
+      <div class="rank-info">
+        <span class="rank-name">{{ item.participante }}</span>
+        <span class="rank-cota">Cota #{{ item.numero_cota }}</span>
+        {% if item.bonus_campeao %}
+        <span class="badge badge--green" style="font-size:.7rem">+{{ item.bonus_campeao }} campeão</span>
+        {% endif %}
+      </div>
+      <div class="rank-stats">
+        <span class="rank-pts">{{ "%.1f"|format(item.total) }} <small>pts</small></span>
+        <div class="rank-detail">
+          <span>🎯 {{ item.placares_exatos }}</span>
+          <span>✅ {{ item.classificados }}</span>
+        </div>
+      </div>
+      <a href="/cota/{{ item.cota_id }}/historico" class="btn btn--ghost btn--xs">📊</a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}

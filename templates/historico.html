@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Histórico — Cota #{{ cota.numero }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="/bolao/{{ bolao.id }}/ranking" class="back-link">← Ranking</a>
+  <h1 class="page-title">Histórico</h1>
+  <p class="page-sub">{{ cota.participante }} · Cota #{{ cota.numero }} · {{ bolao.nome }}</p>
+</div>
+
+{% if palpite_campeao %}
+<div class="campeao-card">
+  <span>🏆 Palpite do campeão: <strong>{{ palpite_campeao.time_campeao }}</strong></span>
+</div>
+{% endif %}
+
+{% set ns = namespace(fase_atual='', total=0) %}
+{% for jogo in historico %}
+  {% if jogo.fase_nome != ns.fase_atual %}
+    {% if not loop.first %}</div>{% endif %}
+    {% set ns.fase_atual = jogo.fase_nome %}
+    <div class="historico-fase">
+    <h3 class="fase-header">{{ jogo.fase_nome }}</h3>
+  {% endif %}
+
+  <div class="historico-row
+    {% if jogo.tipo_acerto == 'placar_exato' %}historico-row--exact
+    {% elif jogo.tipo_acerto in ('resultado', 'vencedor') %}historico-row--result
+    {% elif jogo.tipo_acerto == 'classificado' %}historico-row--class
+    {% elif jogo.r_casa is not none %}historico-row--miss
+    {% endif %}">
+
+    <div class="hist-jogo">
+      <span class="hist-times">{{ jogo.time_casa }} × {{ jogo.time_fora }}</span>
+      <span class="hist-data">{{ jogo.data_hora[:10] }}</span>
+    </div>
+
+    <div class="hist-palpite">
+      {% if jogo.p_casa is not none %}
+        <span class="hist-label">Palpite</span>
+        <span class="hist-placar">{{ jogo.p_casa }}–{{ jogo.p_fora }}</span>
+        {% if jogo.p_class %}<span class="hist-class">{{ jogo.p_class }}</span>{% endif %}
+      {% else %}
+        <span class="hist-sem-palpite">Sem palpite</span>
+      {% endif %}
+    </div>
+
+    {% if jogo.r_casa is not none %}
+    <div class="hist-resultado">
+      <span class="hist-label">Resultado</span>
+      <span class="hist-placar">{{ jogo.r_casa }}–{{ jogo.r_fora }}</span>
+      {% if jogo.r_class %}<span class="hist-class">{{ jogo.r_class }}</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="hist-pontos">
+      {% if jogo.pontos_total is not none %}
+        <span class="pontos-badge">{{ "%.1f"|format(jogo.pontos_total) }} pts</span>
+        {% if jogo.tipo_acerto == 'placar_exato' %}
+          <span class="acerto-badge acerto--exact">Placar exato 🎯</span>
+        {% elif jogo.tipo_acerto == 'classificado' %}
+          <span class="acerto-badge acerto--class">Classificado ✅</span>
+        {% elif jogo.tipo_acerto in ('resultado', 'vencedor') %}
+          <span class="acerto-badge acerto--result">Resultado ✓</span>
+        {% elif jogo.tipo_acerto == 'erro' %}
+          <span class="acerto-badge acerto--miss">Errou ✗</span>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+{% if historico %}</div>{% endif %}
+
+{% endblock %}

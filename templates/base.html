@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Bolão Copa 2026{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% if user is defined and user %}
+<nav class="navbar">
+  <a href="/" class="navbar-brand">⚽ BOLÃO <span>2026</span></a>
+  <div class="navbar-actions">
+    {% if user.is_admin %}
+      <a href="/admin" class="nav-link">Admin</a>
+    {% else %}
+      <a href="/dashboard" class="nav-link">Início</a>
+    {% endif %}
+    <a href="/logout" class="nav-link nav-link--logout">Sair</a>
+  </div>
+</nav>
+{% endif %}
+
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
